@@ -1,4 +1,0 @@
-bf87bdb786f4faf7dc9801e4062418ea07506926 1940 traefik-mcp-fixed.yaml
-65484f0af420e7e3b2717b959183a255b06a8560 1747 traefik-mcp-fixed.yaml
-d1e40b3ea42ea268fbfd1a54f40a7f6d4a11deef 1904 traefik-mcp-fixed.yaml
-3c737ad703bdfa1c1da1d0b71a2622b12c279d5f 1924 traefik-mcp-fixed.yaml

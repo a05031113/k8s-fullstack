@@ -1,2 +1,0 @@
-05a7a89aa169fcf256adf3d653b5a1b514b649ec,DELETE,regular-file,k8s/database/postgres-secret.template.yaml,1388,
-1e083d38424d26bf8ed7dc5c5efed940280197e5,DELETE,regular-file,k8s/n8n/n8n-secret.yaml,512,

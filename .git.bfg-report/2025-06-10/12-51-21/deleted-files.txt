@@ -1,3 +1,0 @@
-1e083d38424d26bf8ed7dc5c5efed940280197e5 512 n8n-secret.yaml
-e975bb990721f432b2b5304914ab59fd1792c63c 555 n8n-secret.yaml
-05a7a89aa169fcf256adf3d653b5a1b514b649ec 1388 postgres-secret.template.yaml

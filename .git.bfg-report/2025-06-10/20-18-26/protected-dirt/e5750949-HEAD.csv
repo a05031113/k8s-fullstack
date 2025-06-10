@@ -1,7 +1,0 @@
-aef3ce4f2b26ec166903b5c99b2bc92f29d16a34,DELETE,regular-file,k8s/ingress/traefik-ingress.example.yaml,652,
-fcb345c875614e2e8468c8ad9f558c85be2f8662,DELETE,regular-file,k8s/security/traefik-security-middleware.yaml,1736,
-fbeef4e9a78cf41f35c8fbbfb27bfa3ea34f0ad6,DELETE,regular-file,k8s/traefik/traefik-configmap.yaml,1594,
-a0507cb7e4ef87a0788155baf47b97bd0954d380,DELETE,regular-file,k8s/traefik/traefik-deployment.yaml,2402,
-2c65e043667472b3601954e5df55235a88331c10,DELETE,regular-file,k8s/traefik/traefik-namespace.yaml,157,
-e4cab95cc19424ca199b07c5179e28290a428a5a,DELETE,regular-file,k8s/traefik/traefik-rbac.yaml,1761,
-2f6bcdcdb86440a27d4336d32a1131863bbb38c8,DELETE,regular-file,k8s/traefik/traefik-service.yaml,1612,
