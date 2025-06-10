@@ -6,6 +6,20 @@ k8s/database/postgres-secret-*.yaml
 k8s/*/secret*.yaml
 k8s/**/secret*.yaml
 
+# 🆕 特別保護 n8n Secret 檔案
+k8s/n8n/n8n-secret.yaml
+k8s/n8n/n8n-secret-*.yaml
+
+# ⚠️ 新增：n8n 相關的所有 secret 檔案
+k8s/n8n/*secret*.yaml
+
+# ================================
+# 🔒 n8n 相關敏感檔案
+# ================================
+k8s/n8n/n8n-secret.yaml
+k8s/n8n/n8n-secret-*.yaml
+k8s/n8n/n8n-*.secret.yaml
+
 # ================================
 # 🔒 Ingress 和路由配置（可能包含真實域名）
 # ================================
@@ -119,3 +133,6 @@ backup-*/
 .git.bfg-report/
 **/.git.bfg-report/
 *.bfg-report/
+
+# n8n Secret Files
+k8s/n8n/n8n-secret.yaml
