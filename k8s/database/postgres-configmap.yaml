@@ -1,0 +1,112 @@
+# postgres-configmap.yaml
+# 作用：存放 PostgreSQL 的初始化腳本
+# 這個腳本會在 PostgreSQL 第一次啟動時自動執行
+# ⚠️  密碼會由 generate-secret.sh 腳本自動替換
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-initdb
+  namespace: database
+data:
+  # 這個檔案會被掛載到容器的 /docker-entrypoint-initdb.d/ 目錄
+  # PostgreSQL 會自動執行這個目錄中的 .sql 檔案
+  01-create-databases.sql: |
+    -- ================================
+    -- 共享 PostgreSQL 多資料庫初始化腳本
+    -- 這個腳本會創建多個資料庫和使用者
+    -- ================================
+    
+    -- 設置字元編碼
+    SET client_encoding = 'UTF8';
+    
+    -- ================================
+    -- n8n 相關設置
+    -- ================================
+    \echo 'Creating n8n database and user...';
+    
+    -- 創建 n8n 專用資料庫
+    CREATE DATABASE n8n_db
+        WITH 
+        OWNER = postgres
+        ENCODING = 'UTF8'
+        LC_COLLATE = 'en_US.utf8'
+        LC_CTYPE = 'en_US.utf8'
+        TABLESPACE = pg_default
+        CONNECTION LIMIT = -1;
+    
+    -- 創建 n8n 專用使用者
+    CREATE USER n8n_user WITH PASSWORD 'n8n_password';
+    
+    -- 給 n8n_user 完整的資料庫權限
+    GRANT ALL PRIVILEGES ON DATABASE n8n_db TO n8n_user;
+    ALTER DATABASE n8n_db OWNER TO n8n_user;
+    
+    -- ================================
+    -- 應用 API 相關設置
+    -- ================================
+    \echo 'Creating application database and user...';
+    
+    -- 創建應用專用資料庫
+    CREATE DATABASE app_db
+        WITH 
+        OWNER = postgres
+        ENCODING = 'UTF8'
+        LC_COLLATE = 'en_US.utf8'
+        LC_CTYPE = 'en_US.utf8'
+        TABLESPACE = pg_default
+        CONNECTION LIMIT = -1;
+    
+    -- 創建應用專用使用者
+    CREATE USER app_user WITH PASSWORD 'app_password';
+    
+    -- 給 app_user 完整的資料庫權限
+    GRANT ALL PRIVILEGES ON DATABASE app_db TO app_user;
+    ALTER DATABASE app_db OWNER TO app_user;
+    
+    -- ================================
+    -- 監控工具相關設置（為未來準備）
+    -- ================================
+    \echo 'Creating monitoring database and user...';
+    
+    -- 創建監控專用資料庫
+    CREATE DATABASE monitoring_db
+        WITH 
+        OWNER = postgres
+        ENCODING = 'UTF8'
+        LC_COLLATE = 'en_US.utf8'
+        LC_CTYPE = 'en_US.utf8'
+        TABLESPACE = pg_default
+        CONNECTION LIMIT = -1;
+    
+    -- 創建監控專用使用者
+    CREATE USER monitor_user WITH PASSWORD 'monitor_password';
+    
+    -- 給 monitor_user 完整的資料庫權限
+    GRANT ALL PRIVILEGES ON DATABASE monitoring_db TO monitor_user;
+    ALTER DATABASE monitoring_db OWNER TO monitor_user;
+    
+    -- ================================
+    -- 顯示創建結果
+    -- ================================
+    \echo '=== 創建的資料庫列表 ===';
+    SELECT 
+        datname as "Database Name", 
+        pg_catalog.pg_get_userbyid(datdba) as "Owner"
+    FROM pg_catalog.pg_database 
+    WHERE datname NOT IN ('template0', 'template1')
+    ORDER BY datname;
+    
+    \echo '=== 創建的使用者列表 ===';
+    SELECT 
+        usename as "Username",
+        CASE WHEN usesuper THEN 'Yes' ELSE 'No' END as "Superuser"
+    FROM pg_catalog.pg_user
+    WHERE usename NOT IN ('postgres')
+    ORDER BY usename;
+    
+    \echo '=== 初始化完成！===';
+    \echo 'n8n_db -> n8n_user';
+    \echo 'app_db -> app_user';  
+    \echo 'monitoring_db -> monitor_user';
+    \echo 'PostgreSQL multi-database setup completed in Kubernetes!';

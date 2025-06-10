@@ -1,0 +1,72 @@
+# k8s/security/traefik-security-middleware.yaml
+# Traefik 安全中間件
+
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: security-headers
+  namespace: fullstack-app
+spec:
+  headers:
+    customRequestHeaders:
+      X-Forwarded-Proto: "https"
+    customResponseHeaders:
+      X-Frame-Options: "DENY"
+      X-Content-Type-Options: "nosniff"
+      X-XSS-Protection: "1; mode=block"
+      Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+      Referrer-Policy: "strict-origin-when-cross-origin"
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: rate-limit
+  namespace: fullstack-app
+spec:
+  rateLimit:
+    burst: 20
+    average: 100
+
+---
+# 更新 Ingress 以使用安全中間件
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fullstack-ingress-secure
+  namespace: fullstack-app
+  annotations:
+    traefik.ingress.kubernetes.io/router.priority: "100"
+    traefik.ingress.kubernetes.io/router.middlewares: "fullstack-app-security-headers@kubernetescrd,fullstack-app-rate-limit@kubernetescrd"
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: REPLACE_WITH_YOUR_DOMAIN
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: n8n-service
+            port:
+              number: 80
+  
+  # 未來的應用路由
+  - host: app.REPLACE_WITH_YOUR_DOMAIN
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-service
+            port:
+              number: 8080
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80

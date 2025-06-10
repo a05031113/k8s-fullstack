@@ -1,0 +1,80 @@
+# 修正版 Traefik IngressRoute - 防止路徑重寫
+# 確保 /webhook/mcp/ 路徑完整傳遞給 n8n
+
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: n8n-mcp-sse-fixed
+  namespace: fullstack-app
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+  # MCP SSE 專用路由 - 保持完整路徑
+  - match: Host(`REPLACE_WITH_YOUR_DOMAIN`) && PathPrefix(`/webhook/mcp/`)
+    kind: Rule
+    priority: 1000
+    services:
+    - name: n8n-service
+      port: 80
+      sticky:
+        cookie:
+          name: n8n-mcp-session
+          secure: true
+          httpOnly: true
+      # 🔧 關鍵：保持完整的原始路徑
+      passHostHeader: true
+      scheme: http
+    middlewares:
+    - name: sse-headers
+    - name: preserve-path
+    
+  # 普通 n8n 路由
+  - match: Host(`REPLACE_WITH_YOUR_DOMAIN`)
+    kind: Rule
+    priority: 100
+    services:
+    - name: n8n-service
+      port: 80
+      passHostHeader: true
+      scheme: http
+
+---
+# 保持路徑 Middleware
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: preserve-path
+  namespace: fullstack-app
+spec:
+  headers:
+    customRequestHeaders:
+      # 確保路徑不被重寫
+      X-Forwarded-Prefix: ""
+      X-Original-URL: ""
+      # 讓 n8n 知道原始請求路徑
+      X-Original-URI: ""
+
+---
+# SSE 專用 Headers Middleware  
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: sse-headers
+  namespace: fullstack-app
+spec:
+  headers:
+    customRequestHeaders:
+      # 禁用壓縮
+      Accept-Encoding: ""
+    customResponseHeaders:
+      # SSE 必要 headers
+      Cache-Control: "no-cache, no-store, must-revalidate"
+      Connection: "keep-alive"
+      Content-Type: "text/event-stream"
+      Access-Control-Allow-Origin: "*"
+      Access-Control-Allow-Methods: "GET, POST, OPTIONS, HEAD"
+      Access-Control-Allow-Headers: "Authorization, Content-Type, Accept"
+      # 禁用緩衝
+      X-Accel-Buffering: "no"

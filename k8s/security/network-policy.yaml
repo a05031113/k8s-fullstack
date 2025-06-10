@@ -1,0 +1,49 @@
+# k8s/security/network-policy.yaml
+# 限制 namespace 之間的通訊
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-ingress
+  namespace: fullstack-app
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  ingress:
+  # 只允許同 namespace 和 Traefik 的流量
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system  # Traefik 所在 namespace
+    - namespaceSelector:
+        matchLabels:
+          name: fullstack-app
+  # 允許來自 database namespace 的流量
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: database
+    ports:
+    - protocol: TCP
+      port: 5432
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: database-isolation
+  namespace: database
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  ingress:
+  # 只允許來自 fullstack-app 的連接
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: fullstack-app
+    ports:
+    - protocol: TCP
+      port: 5432

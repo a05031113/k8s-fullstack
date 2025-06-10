@@ -1,0 +1,18 @@
+# n8n 資料持久化存儲
+# 用於存儲 n8n 的工作流、配置、認證等資料
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: n8n-pvc
+  namespace: fullstack-app
+  labels:
+    app: n8n
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce  # 只能被一個 Pod 掛載
+  resources:
+    requests:
+      storage: 5Gi   # n8n 不需要太大的存儲空間
+  storageClassName: local-path  # Rancher Desktop 預設

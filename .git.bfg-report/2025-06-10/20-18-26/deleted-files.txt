@@ -1,0 +1,12 @@
+fa51e837bcd6867328fada4eb9aa781ea6358896 2239 traefik-configmap.yaml
+fbeef4e9a78cf41f35c8fbbfb27bfa3ea34f0ad6 1594 traefik-configmap.yaml
+a0507cb7e4ef87a0788155baf47b97bd0954d380 2402 traefik-deployment.yaml
+2c65e043667472b3601954e5df55235a88331c10 157 traefik-namespace.yaml
+e4cab95cc19424ca199b07c5179e28290a428a5a 1761 traefik-rbac.yaml
+0ee1a0262f58bd2581d50e133a4c423b901b6e6d 1377 traefik-rbac.yaml
+4fe4a0caec3202c48b7dea85a25eed35c184e482 1716 traefik-security-middleware.yaml
+fcb345c875614e2e8468c8ad9f558c85be2f8662 1736 traefik-security-middleware.yaml
+88f5b1a9528212e0dc2918df5a3c5c729189691a 1619 traefik-service.yaml
+2f6bcdcdb86440a27d4336d32a1131863bbb38c8 1612 traefik-service.yaml
+eecfba5ef106905830a375e545c3f9c6fac06c1c 589 traefik-sse-middleware.yaml
+a485a6759ac977bea98876f6591c58460a6c8215 568 traefik-sse-middleware.yaml

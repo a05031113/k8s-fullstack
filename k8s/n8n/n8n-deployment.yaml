@@ -1,0 +1,161 @@
+# n8n 部署配置 - 安全版本
+# 敏感 URL 從 Secret 讀取，可安全提交到 Git
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n
+  namespace: fullstack-app
+  labels:
+    app: n8n
+    version: latest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: n8n
+  template:
+    metadata:
+      labels:
+        app: n8n
+    spec:
+      containers:
+      - name: n8n
+        image: n8nio/n8n:latest
+        ports:
+        - containerPort: 5678
+          name: http
+        
+        env:
+        # ================================
+        # 資料庫連接配置
+        # ================================
+        - name: DB_TYPE
+          value: "postgresdb"
+        - name: DB_POSTGRESDB_HOST
+          value: "postgres-service.database.svc.cluster.local"
+        - name: DB_POSTGRESDB_PORT
+          value: "5432"
+        - name: DB_POSTGRESDB_DATABASE
+          value: "n8n_db"
+        - name: DB_POSTGRESDB_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret-copy
+              key: n8n-user
+        - name: DB_POSTGRESDB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret-copy
+              key: n8n-password
+        
+        # ================================
+        # 應用核心配置
+        # ================================
+        - name: N8N_USER_MANAGEMENT_DISABLED
+          value: "false"  # 啟用用戶管理以支援 OAuth2
+        - name: N8N_BASIC_AUTH_ACTIVE
+          value: "false"  # 使用 OAuth2 而非 Basic Auth
+        
+        # ================================
+        # 🔒 URL 配置（從 Secret 讀取）
+        # ================================
+        - name: WEBHOOK_URL
+          valueFrom:
+            secretKeyRef:
+              name: n8n-urls
+              key: webhook-url
+        - name: N8N_EDITOR_BASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: n8n-urls
+              key: editor-base-url
+        - name: N8N_PORT
+          value: "5678"
+        - name: N8N_PROTOCOL
+          value: "https"
+        
+        # ================================
+        # MCP 和 AI 功能（核心配置）
+        # ================================
+        - name: N8N_MCP_ENABLED
+          value: "true"
+        - name: N8N_MCP_SERVER_ENABLED
+          value: "true"
+        - name: N8N_AI_ENABLED
+          value: "true"
+        - name: N8N_LANGCHAIN_ENABLED
+          value: "true"
+        
+        # ================================
+        # 執行模式（穩定配置）
+        # ================================
+        - name: EXECUTIONS_MODE
+          value: "regular"  # 使用最穩定的執行模式
+        
+        # ================================
+        # 時區配置
+        # ================================
+        - name: GENERIC_TIMEZONE
+          value: "Asia/Taipei"
+        - name: TZ
+          value: "Asia/Taipei"
+        
+        # ================================
+        # 效能和日誌配置
+        # ================================
+        - name: N8N_LOG_LEVEL
+          value: "info"
+        - name: N8N_METRICS
+          value: "true"
+        - name: NODE_OPTIONS
+          value: "--max-old-space-size=1024"
+        
+        # ================================
+        # Volume 掛載
+        # ================================
+        volumeMounts:
+        - name: n8n-data
+          mountPath: /home/node/.n8n
+        
+        # ================================
+        # 健康檢查
+        # ================================
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 5678
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 5678
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        # ================================
+        # 資源限制
+        # ================================
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+      
+      # ================================
+      # Volume 定義
+      # ================================
+      volumes:
+      - name: n8n-data
+        persistentVolumeClaim:
+          claimName: n8n-pvc
+      
+      restartPolicy: Always

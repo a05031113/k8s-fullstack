@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traefik-config
+  namespace: traefik-system
+data:
+  traefik.yml: |
+    # Traefik v3.0 靜態配置 - 修復版本
+    # 適用於 K8s 學習專案
+    
+    # 全域設定
+    global:
+      checkNewVersion: false
+      sendAnonymousUsage: false
+
+    # API 和 Dashboard 設定
+    api:
+      dashboard: true
+      debug: true
+      insecure: true  # 開發環境設定，生產環境請設為 false
+
+    # 入口點定義
+    entryPoints:
+      web:
+        address: ":80"
+      
+      websecure:
+        address: ":443"
+      
+      traefik:
+        address: ":8080"  # Dashboard 專用端口
+
+    # 服務提供者配置 - 修復 v3.0 語法
+    providers:
+      # Kubernetes Ingress 支援
+      kubernetesIngress:
+        namespaces:
+          - "fullstack-app"    # 你的應用 namespace
+          - "database"         # 資料庫 namespace (如果需要暴露)
+          - "traefik-system"   # Traefik 自身的 namespace
+      
+      # Kubernetes CRD 支援 (IngressRoute 等)
+      kubernetesCRD:
+        namespaces:
+          - "fullstack-app"
+          - "traefik-system"
+
+    # 日誌配置
+    log:
+      level: INFO
+      format: json
+
+    # 訪問日誌
+    accessLog:
+      format: json
+      fields:
+        defaultMode: keep
+        names:
+          StartUTC: drop  # 減少日誌量
+
+    # Metrics 監控 (為未來的 Prometheus 準備)
+    metrics:
+      prometheus:
+        addEntryPointsLabels: true
+        addServicesLabels: true
+        addRoutersLabels: true
+
+    # 健康檢查端點
+    ping:
+      entryPoint: traefik

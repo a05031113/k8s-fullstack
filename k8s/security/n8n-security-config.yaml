@@ -1,0 +1,18 @@
+# k8s/security/n8n-security-config.yaml
+# n8n 安全加強配置
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: n8n-security-config
+  namespace: fullstack-app
+data:
+  # 安全標頭設置
+  security-headers: |
+    # 在 Traefik 或 nginx 中添加的安全標頭
+    X-Frame-Options: DENY
+    X-Content-Type-Options: nosniff
+    X-XSS-Protection: 1; mode=block
+    Strict-Transport-Security: max-age=31536000; includeSubDomains
+    Content-Security-Policy: default-src 'self'
+    Referrer-Policy: strict-origin-when-cross-origin

@@ -1,0 +1,21 @@
+# postgres-pvc.yaml
+# 作用：向 Kubernetes 申請存儲空間
+# PVC = Persistent Volume Claim（持久化存儲申請）
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: database
+spec:
+  # 訪問模式
+  accessModes:
+    - ReadWriteOnce  # 只能被一個 Pod 以讀寫模式掛載（適合資料庫）
+  
+  # 申請的存儲空間
+  resources:
+    requests:
+      storage: 10Gi  # 申請 10GB 的存儲空間
+  
+  # 存儲類別（Rancher Desktop 預設是 local-path）
+  storageClassName: local-path

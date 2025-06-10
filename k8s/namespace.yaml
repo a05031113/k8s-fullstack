@@ -1,0 +1,18 @@
+# namespace.yaml
+# 作用：為我們的應用創建獨立的空間，就像建立資料夾一樣
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: database
+  labels:
+    purpose: database-services
+    project: k8s-fullstack
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fullstack-app
+  labels:
+    purpose: application-services
+    project: k8s-fullstack

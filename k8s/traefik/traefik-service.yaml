@@ -1,0 +1,83 @@
+# Traefik 服務配置
+# 包含內部 ClusterIP 和外部 NodePort 兩個服務
+
+---
+# Traefik 內部服務 (集群內部訪問)
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik
+  namespace: traefik-system
+  labels:
+    app: traefik
+    component: ingress-controller
+spec:
+  type: ClusterIP
+  ports:
+  - name: web
+    port: 80
+    targetPort: web
+    protocol: TCP
+  - name: websecure
+    port: 443
+    targetPort: websecure
+    protocol: TCP
+  - name: traefik
+    port: 8080
+    targetPort: traefik
+    protocol: TCP
+  selector:
+    app: traefik
+
+---
+# Traefik 外部訪問服務 (NodePort)
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik-nodeport
+  namespace: traefik-system
+  labels:
+    app: traefik
+    component: ingress-controller
+    service: external-access
+spec:
+  type: NodePort
+  ports:
+  - name: web
+    port: 80
+    targetPort: web
+    nodePort: 30080    # HTTP 流量入口 - ngrok 會指向這裡
+    protocol: TCP
+  - name: websecure
+    port: 443
+    targetPort: websecure
+    nodePort: 30443    # HTTPS 流量入口
+    protocol: TCP
+  - name: traefik
+    port: 8080
+    targetPort: traefik
+    nodePort: 30808    # Traefik Dashboard 訪問
+    protocol: TCP
+  selector:
+    app: traefik
+
+---
+# 為 Traefik Dashboard 建立專用的 ClusterIP 服務
+# 這樣可以透過 Ingress 來訪問 Dashboard
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik-dashboard
+  namespace: traefik-system
+  labels:
+    app: traefik
+    component: dashboard
+spec:
+  type: ClusterIP
+  ports:
+  - name: dashboard
+    port: 80
+    targetPort: traefik
+    protocol: TCP
+  selector:
+    app: traefik

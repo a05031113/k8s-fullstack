@@ -1,0 +1,135 @@
+# postgres-statefulset.yaml
+# 作用：部署 PostgreSQL 資料庫
+# StatefulSet 用於有狀態的應用，確保資料庫有穩定的網路標識和存儲
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: database
+  labels:
+    app: postgres
+    project: k8s-fullstack
+spec:
+  # 服務名稱，必須與 Service 名稱一致
+  serviceName: postgres-service
+  
+  # 副本數量（資料庫通常只需要一個）
+  replicas: 1
+  
+  # 選擇器，用來識別要管理的 Pod
+  selector:
+    matchLabels:
+      app: postgres
+  
+  # Pod 模板
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        # 使用官方 PostgreSQL 15 映像
+        image: postgres:15
+        
+        # 容器暴露的 port
+        ports:
+        - containerPort: 5432
+          name: postgres
+        
+        # ================================
+        # 環境變數配置
+        # ================================
+        env:
+        # 預設資料庫名稱
+        - name: POSTGRES_DB
+          value: "postgres"
+        
+        # 管理員使用者名稱（從 Secret 讀取）
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: admin-user
+        
+        # 管理員密碼（從 Secret 讀取）
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: admin-password
+        
+        # PostgreSQL 資料目錄
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        
+        # ================================
+        # Volume 掛載
+        # ================================
+        volumeMounts:
+        # 資料持久化目錄
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        
+        # 初始化腳本目錄
+        - name: initdb-scripts
+          mountPath: /docker-entrypoint-initdb.d
+        
+        # ================================
+        # 健康檢查
+        # ================================
+        # 存活檢查：檢查 PostgreSQL 是否還活著
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - admin
+            - -d
+            - postgres
+          initialDelaySeconds: 30  # 30 秒後開始檢查
+          periodSeconds: 10        # 每 10 秒檢查一次
+          timeoutSeconds: 5        # 5 秒超時
+          failureThreshold: 3      # 連續失敗 3 次就重啟 Pod
+        
+        # 就緒檢查：檢查 PostgreSQL 是否可以接受連接
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - admin
+            - -d
+            - postgres
+          initialDelaySeconds: 5   # 5 秒後開始檢查
+          periodSeconds: 5         # 每 5 秒檢查一次
+          timeoutSeconds: 3        # 3 秒超時
+          failureThreshold: 3      # 連續失敗 3 次就標記為未就緒
+        
+        # ================================
+        # 資源限制
+        # ================================
+        resources:
+          # 請求的最小資源
+          requests:
+            memory: "256Mi"        # 最少需要 256MB 記憶體
+            cpu: "250m"            # 最少需要 0.25 個 CPU 核心
+          # 資源上限
+          limits:
+            memory: "1Gi"          # 最多使用 1GB 記憶體
+            cpu: "1000m"           # 最多使用 1 個 CPU 核心
+      
+      # ================================
+      # Volume 定義
+      # ================================
+      volumes:
+      # 持久化存儲（用於資料庫資料）
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+      
+      # 初始化腳本（用於多資料庫設置）
+      - name: initdb-scripts
+        configMap:
+          name: postgres-initdb

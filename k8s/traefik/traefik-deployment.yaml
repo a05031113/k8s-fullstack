@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traefik
+  namespace: traefik-system
+  labels:
+    app: traefik
+    component: ingress-controller
+    version: v3.0
+spec:
+  replicas: 1  # 學習環境使用單個 replica
+  selector:
+    matchLabels:
+      app: traefik
+  template:
+    metadata:
+      labels:
+        app: traefik
+        component: ingress-controller
+    spec:
+      serviceAccountName: traefik
+      containers:
+      - name: traefik
+        image: traefik:v3.0
+        args:
+        - --configfile=/etc/traefik/traefik.yml
+        
+        # 端口配置
+        ports:
+        - name: web
+          containerPort: 80
+          protocol: TCP
+        - name: websecure
+          containerPort: 443
+          protocol: TCP
+        - name: traefik
+          containerPort: 8080
+          protocol: TCP
+        
+        # Volume 掛載
+        volumeMounts:
+        - name: config
+          mountPath: /etc/traefik
+          readOnly: true
+        # 未來 HTTPS 憑證存儲 (暫時註解)
+        # - name: data
+        #   mountPath: /data
+        
+        # 健康檢查
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: 8080
+          failureThreshold: 1
+          initialDelaySeconds: 2
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+        
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: 8080
+          failureThreshold: 3
+          initialDelaySeconds: 2
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+        
+        # 資源限制
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        
+        # 安全上下文
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65532  # traefik user
+      
+      # Volumes 定義
+      volumes:
+      - name: config
+        configMap:
+          name: traefik-config
+      # 未來 HTTPS 憑證存儲
+      # - name: data
+      #   persistentVolumeClaim:
+      #     claimName: traefik-data
+      
+      # 重啟策略
+      restartPolicy: Always
+      
+      # 優雅關閉
+      terminationGracePeriodSeconds: 30
