@@ -11,7 +11,7 @@ spec:
     - web
     - websecure
   routes:
-  - match: Host(`your-domain.com`)
+  - match: Host(`n8n.system2.work`)
     kind: Rule
     services:
     - name: n8n-service
