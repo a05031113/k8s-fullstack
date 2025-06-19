@@ -16,3 +16,12 @@ metadata:
   labels:
     purpose: application-services
     project: k8s-fullstack
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-services
+  labels:
+    purpose: ai-machine-learning
+    project: k8s-fullstack
+    security: restricted

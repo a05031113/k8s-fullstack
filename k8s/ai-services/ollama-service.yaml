@@ -1,0 +1,25 @@
+# Ollama Service - 內網服務端點
+# 功能：為 Ollama 創建穩定的內網訪問端點，讓其他服務可以透過服務名稱調用
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-service
+  namespace: ai-services
+  labels:
+    app: ollama
+    component: llm-api
+spec:
+  # 選擇標籤為 app: ollama 的 Pod（對應 Deployment 中的 labels）
+  selector:
+    app: ollama
+  
+  # 端口配置
+  ports:
+  - name: http
+    port: 11434        # Service 對外暴露的端口
+    targetPort: 11434  # Pod 內 Ollama 容器的端口
+    protocol: TCP
+  
+  # ClusterIP：僅集群內部訪問，不對外開放
+  type: ClusterIP
