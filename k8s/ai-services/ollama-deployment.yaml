@@ -1,0 +1,83 @@
+# Ollama Deployment - 部署 Ollama 容器
+# 功能：在 ai-services namespace 中運行 Ollama，並掛載 PVC 來持久化 Gemma 2B 模型
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: ai-services
+  labels:
+    app: ollama
+    component: llm-runtime
+spec:
+  # 只需要一個副本（LLM 模型不需要多個副本）
+  replicas: 1
+  
+  selector:
+    matchLabels:
+      app: ollama
+  
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      containers:
+      - name: ollama
+        # 使用官方 Ollama 鏡像
+        image: ollama/ollama:latest
+        
+        # 暴露 11434 端口給其他服務調用
+        ports:
+        - containerPort: 11434
+          name: http
+        
+        # 環境變數設定
+        env:
+        - name: OLLAMA_HOST
+          value: "0.0.0.0"  # 監聽所有網路介面
+        - name: OLLAMA_PORT
+          value: "11434"    # 預設端口
+        
+        # 掛載 PVC 到 Ollama 的模型目錄
+        volumeMounts:
+        - name: ollama-models
+          mountPath: /root/.ollama  # Ollama 存放模型的預設路徑
+        
+        # 資源限制（基於您的 8GB Rancher Desktop 設定）
+        resources:
+          requests:
+            memory: "2Gi"      # 基本需求：2GB RAM
+            cpu: "500m"        # 基本需求：0.5 CPU 核心
+          limits:
+            memory: "4Gi"      # 最大使用：4GB RAM（為 Gemma 2B 預留空間）
+            cpu: "1500m"       # 最大使用：1.5 CPU 核心
+        
+        # 健康檢查：確保 Ollama API 正常運作
+        livenessProbe:
+          httpGet:
+            path: /api/tags    # Ollama 的健康檢查端點
+            port: 11434
+          initialDelaySeconds: 60   # 等待 60 秒再開始檢查（模型加載需要時間）
+          periodSeconds: 30         # 每 30 秒檢查一次
+          timeoutSeconds: 10        # 10 秒內沒回應就認為失敗
+          failureThreshold: 3       # 連續失敗 3 次才重啟 Pod
+        
+        # 就緒檢查：確保可以接受請求
+        readinessProbe:
+          httpGet:
+            path: /api/tags
+            port: 11434
+          initialDelaySeconds: 30   # 30 秒後開始檢查
+          periodSeconds: 10         # 每 10 秒檢查一次
+          timeoutSeconds: 5         # 5 秒內要回應
+          failureThreshold: 3       # 連續失敗 3 次才標記為 not ready
+      
+      # 定義要掛載的 Volume
+      volumes:
+      - name: ollama-models
+        persistentVolumeClaim:
+          claimName: ollama-models-pvc  # 引用我們剛剛創建的 PVC
+      
+      # 重啟策略：總是重啟（確保 LLM 服務持續運行）
+      restartPolicy: Always

@@ -134,5 +134,10 @@ backup-*/
 **/.git.bfg-report/
 *.bfg-report/
 
+# ================================
+# 📝 Claude Code Configuration
+# ================================
+CLAUDE.md
+
 # n8n Secret Files
 k8s/n8n/n8n-secret.yaml
