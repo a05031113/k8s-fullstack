@@ -58,7 +58,6 @@ spec:
     - name: gemma-backend-service
       port: 80
     middlewares:
-    - name: gemma-stripprefix  # 🔧 新增：移除路徑前綴
     - name: api-headers
     - name: api-cors
     - name: security-headers
