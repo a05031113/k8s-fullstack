@@ -27,9 +27,16 @@ spec:
         deployment.kubernetes.io/revision: "1"
     
     spec:
+      # ================================
+      # 私有映像拉取認證
+      # ================================
+      imagePullSecrets:
+      - name: ghcr-secret
+      
       containers:
       - name: gemma-backend
-        image: ghcr.io/a05031113/gemma-api:latest
+        image: ghcr.io/a05031113/gemma-api:main  # 使用 main 標籤，會自動更新
+        imagePullPolicy: Always  # 強制每次都拉取最新映像
         
         ports:
         - containerPort: 8000
