@@ -1,0 +1,25 @@
+# Gemma Backend API 內網服務配置
+# 提供集群內部的穩定網路端點
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: gemma-backend-service
+  namespace: fullstack-app
+  labels:
+    app: gemma-backend
+    component: api
+spec:
+  selector:
+    app: gemma-backend
+  
+  ports:
+  - name: http
+    port: 80              # Service 暴露的端口
+    targetPort: 8000      # Pod 中應用的端口
+    protocol: TCP
+  
+  type: ClusterIP         # 僅供集群內部訪問
+  
+  # 會話保持（可選，API 通常不需要）
+  sessionAffinity: None
