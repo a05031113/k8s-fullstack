@@ -62,7 +62,7 @@ spec:
         # 就緒檢查：確保應用可以處理請求
         readinessProbe:
           httpGet:
-            path: /gemma/api/health  # 直接使用完整路徑
+            path: /health  # 直接使用完整路徑
             port: 8000
           initialDelaySeconds: 10
           periodSeconds: 10
