@@ -133,3 +133,5 @@ backup-*/
 # 📝 Claude Code Configuration
 # ================================
 CLAUDE.md
+
+*.sh
