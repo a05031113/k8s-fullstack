@@ -71,17 +71,6 @@ spec:
   #   services:
   #   - name: stock-backend-service
   #     port: 80
-  
-  # 🎨 臨時首頁回應 (最低優先級)
-  - match: Host(`APP_DOMAIN_PLACEHOLDER`)
-    kind: Rule
-    priority: 10
-    services:
-    - name: gemma-backend-service  # 臨時使用 Gemma 服務回應根路徑
-      port: 80
-    middlewares:
-    - name: frontend-headers
-    - name: security-headers
 
 ---
 # 🔧 Gemma API 路徑前綴移除中間件
