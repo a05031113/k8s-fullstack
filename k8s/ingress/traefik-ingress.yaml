@@ -1,0 +1,266 @@
+# Traefik IngressRoute 生產配置
+# 🔄 使用佔位符，透過手動替換進行域名替換
+# ✅ 此檔案可安全推送到 Git Repository
+#
+# 部署方式 (手動替換):
+# sed 's/APP_DOMAIN_PLACEHOLDER/app.system2.work/g; s/N8N_DOMAIN_PLACEHOLDER/n8n.system2.work/g' traefik-ingress.yaml | kubectl apply -f -
+#
+# 前置條件:
+# 1. 確保目標服務已部署並運行
+# 2. 準備好實際的域名
+
+---
+# 🌐 n8n 服務路由
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: n8n-ingress
+  namespace: fullstack-app
+  labels:
+    app: n8n
+    component: ingress
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+  - match: Host(`N8N_DOMAIN_PLACEHOLDER`)  # 🔄 將被替換為實際域名
+    kind: Rule
+    services:
+    - name: n8n-service
+      port: 80
+    middlewares:
+    - name: n8n-headers
+    - name: security-headers
+
+---
+# 🚀 統一應用入口路由 (主要 App 域名)
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: app-ingress
+  namespace: fullstack-app
+  labels:
+    app: main-app
+    component: ingress
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+  
+  # 🤖 Gemma AI API 路由 (高優先級)
+  - match: Host(`APP_DOMAIN_PLACEHOLDER`) && PathPrefix(`/gemma/api`)
+    kind: Rule
+    priority: 100
+    services:
+    - name: gemma-backend-service
+      port: 80
+    middlewares:
+    - name: api-headers
+    - name: api-cors
+    - name: security-headers
+    - name: api-rate-limit
+  
+  # 📈 未來 Stock API 路由 (高優先級)
+  - match: Host(`APP_DOMAIN_PLACEHOLDER`) && PathPrefix(`/stock/api`)
+    kind: Rule
+    priority: 100
+    services:
+    - name: stock-backend-service
+      port: 80
+    middlewares:
+    - name: api-headers
+    - name: api-cors
+    - name: security-headers
+    - name: api-rate-limit
+  
+  # 👤 未來 User API 路由 (高優先級)
+  - match: Host(`APP_DOMAIN_PLACEHOLDER`) && PathPrefix(`/user/api`)
+    kind: Rule
+    priority: 100
+    services:
+    - name: user-backend-service
+      port: 80
+    middlewares:
+    - name: api-headers
+    - name: api-cors
+    - name: security-headers
+    - name: api-rate-limit
+  
+  # 🎨 前端應用路由 (最低優先級，接收所有剩餘請求)
+  - match: Host(`APP_DOMAIN_PLACEHOLDER`)
+    kind: Rule
+    priority: 10
+    services:
+    - name: frontend-service
+      port: 80
+    middlewares:
+    - name: frontend-headers
+    - name: security-headers
+
+---
+# 🔒 n8n 專用中間件
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: n8n-headers
+  namespace: fullstack-app
+  labels:
+    app: n8n
+    component: middleware
+spec:
+  headers:
+    customResponseHeaders:
+      Cache-Control: "no-cache, no-store, must-revalidate"
+      Pragma: "no-cache"
+      Connection: "keep-alive"
+    customRequestHeaders:
+      X-Forwarded-Proto: "https"
+      X-Forwarded-Port: "443"
+
+---
+# 🔧 API 服務通用中間件
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-headers
+  namespace: fullstack-app
+  labels:
+    component: middleware
+    type: api
+spec:
+  headers:
+    customResponseHeaders:
+      X-API-Version: "v1"
+      Cache-Control: "no-cache, no-store, must-revalidate"
+    customRequestHeaders:
+      X-Forwarded-Proto: "https"
+      X-Forwarded-Port: "443"
+      X-Real-IP: ""
+
+---
+# 🌐 API CORS 中間件
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-cors
+  namespace: fullstack-app
+  labels:
+    component: middleware
+    type: cors
+spec:
+  headers:
+    accessControlAllowMethods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+      - HEAD
+    accessControlAllowHeaders:
+      - "*"
+    accessControlAllowOriginList:
+      - "https://APP_DOMAIN_PLACEHOLDER"  # 🔄 將被替換
+      - "https://N8N_DOMAIN_PLACEHOLDER"  # 🔄 將被替換
+    accessControlAllowCredentials: true
+    accessControlMaxAge: 86400
+    addVaryHeader: true
+
+---
+# 🎨 前端應用中間件
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: frontend-headers
+  namespace: fullstack-app
+  labels:
+    component: middleware
+    type: frontend
+spec:
+  headers:
+    customResponseHeaders:
+      Cache-Control: "public, max-age=31536000, immutable"
+      X-Content-Type-Options: "nosniff"
+      X-Frame-Options: "SAMEORIGIN"
+    customRequestHeaders:
+      X-Forwarded-Proto: "https"
+
+---
+# 🛡️ 安全性中間件
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: security-headers
+  namespace: fullstack-app
+  labels:
+    component: middleware
+    type: security
+spec:
+  headers:
+    customResponseHeaders:
+      X-Content-Type-Options: "nosniff"
+      X-Frame-Options: "DENY"
+      X-XSS-Protection: "1; mode=block"
+      Referrer-Policy: "strict-origin-when-cross-origin"
+      Permissions-Policy: "camera=(), microphone=(), geolocation=(), payment=()"
+      Strict-Transport-Security: "max-age=31536000; includeSubDomains; preload"
+    contentTypeNosniff: true
+    browserXssFilter: true
+    forceSTSHeader: true
+    stsIncludeSubdomains: true
+    stsPreload: true
+    stsSeconds: 31536000
+
+---
+# ↩️ HTTP 到 HTTPS 重定向中間件
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: https-redirect
+  namespace: fullstack-app
+  labels:
+    component: middleware
+    type: redirect
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+    port: "443"
+
+---
+# 📊 請求限流中間件 (防止 API 濫用)
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-rate-limit
+  namespace: fullstack-app
+  labels:
+    component: middleware
+    type: rate-limit
+spec:
+  rateLimit:
+    average: 100    # 平均每秒 100 個請求
+    burst: 200      # 突發最多 200 個請求
+    period: 1m      # 統計週期 1 分鐘
+
+---
+# 🔄 重試中間件 (提高 API 可靠性)
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-retry
+  namespace: fullstack-app
+  labels:
+    component: middleware
+    type: retry
+spec:
+  retry:
+    attempts: 3
+    initialInterval: 100ms

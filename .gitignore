@@ -3,31 +3,27 @@
 # ================================
 k8s/database/postgres-secret.yaml
 k8s/database/postgres-secret-*.yaml
-k8s/*/secret*.yaml
-k8s/**/secret*.yaml
-
-# 🆕 特別保護 n8n Secret 檔案
-k8s/n8n/n8n-secret.yaml
-k8s/n8n/n8n-secret-*.yaml
-
-# ⚠️ 新增：n8n 相關的所有 secret 檔案
-k8s/n8n/*secret*.yaml
 
 # ================================
 # 🔒 n8n 相關敏感檔案
 # ================================
 k8s/n8n/n8n-secret.yaml
 k8s/n8n/n8n-secret-*.yaml
+k8s/n8n/*secret*.yaml
 k8s/n8n/n8n-*.secret.yaml
 
 # ================================
-# 🔒 Ingress 和路由配置（可能包含真實域名）
+# 🔒 域名配置 (只保護實際配置，允許模板和範例)
 # ================================
-k8s/ingress/traefik-ingress.yaml
+k8s/ingress/domain-secret.yaml
+!k8s/ingress/domain-secret.example.yaml
+
+# ⚠️ 允許推送 traefik-ingress.yaml (使用佔位符)
+!k8s/ingress/traefik-ingress.yaml
+
+# 🔒 其他可能的敏感 Ingress 檔案
 k8s/ingress/*-prod*.yaml
 k8s/ingress/*production*.yaml
-k8s/**/ingress*.yaml
-!k8s/**/ingress*.example.yaml
 
 # ================================
 # 🔒 敏感 URL 配置
@@ -40,12 +36,11 @@ k8s/**/url-secrets.yaml
 **/personal-domains.yaml
 
 # ================================
-# 🔒 腳本檔案（可能包含敏感路徑）
+# 🔒 通用 Secret 檔案模式 (但允許特定例外)
 # ================================
-*.sh
-!**/example-*.sh
-!**/template-*.sh
-!scripts/*.sh
+k8s/*/secret*.yaml
+k8s/**/secret*.yaml
+!k8s/**/secret*.example.yaml
 
 # ================================
 # 🔒 環境變數和配置檔案
@@ -138,6 +133,3 @@ backup-*/
 # 📝 Claude Code Configuration
 # ================================
 CLAUDE.md
-
-# n8n Secret Files
-k8s/n8n/n8n-secret.yaml

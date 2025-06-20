@@ -1,0 +1,178 @@
+# Gemma Backend API 部署配置
+# 部署您的 FastAPI 應用到 Kubernetes
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gemma-backend
+  namespace: fullstack-app
+  labels:
+    app: gemma-backend
+    component: api
+    version: "1.0.0"
+spec:
+  replicas: 1                    # 開始時使用 1 個副本
+  
+  selector:
+    matchLabels:
+      app: gemma-backend
+  
+  template:
+    metadata:
+      labels:
+        app: gemma-backend
+        component: api
+      annotations:
+        # 添加更新時間戳，強制 Pod 重建
+        deployment.kubernetes.io/revision: "1"
+    
+    spec:
+      containers:
+      - name: gemma-backend
+        image: ghcr.io/a05031113/gemma-api:latest
+        
+        ports:
+        - containerPort: 8000
+          name: http
+        
+        # ================================
+        # 環境變數配置
+        # ================================
+        envFrom:
+        - configMapRef:
+            name: gemma-backend-config
+        
+        # 可以覆蓋 ConfigMap 中的特定值
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        
+        # ================================
+        # 健康檢查配置
+        # ================================
+        # 就緒檢查：確保應用可以處理請求
+        readinessProbe:
+          httpGet:
+            path: /gemma/api/health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        # 存活檢查：確保應用仍在運行
+        livenessProbe:
+          httpGet:
+            path: /ping              # 簡單的 ping 端點
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        # 啟動檢查：給應用足夠時間啟動
+        startupProbe:
+          httpGet:
+            path: /ping
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 30      # 30 * 5 = 150秒啟動時間
+        
+        # ================================
+        # 資源配置
+        # ================================
+        resources:
+          requests:
+            memory: "512Mi"         # 請求 512MB 記憶體
+            cpu: "250m"             # 請求 0.25 CPU 核心
+          limits:
+            memory: "1Gi"           # 最多使用 1GB 記憶體
+            cpu: "500m"             # 最多使用 0.5 CPU 核心
+        
+        # ================================
+        # 安全配置
+        # ================================
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000           # 對應 Dockerfile 中的 appuser
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+        
+        # ================================
+        # 生命週期 hooks（可選）
+        # ================================
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sleep", "15"]  # 優雅停止
+      
+      # ================================
+      # Pod 級別配置
+      # ================================
+      restartPolicy: Always
+      
+      # 終止優雅期間
+      terminationGracePeriodSeconds: 30
+      
+      # DNS 配置
+      dnsPolicy: ClusterFirst
+      
+      # 服務帳號（使用預設）
+      serviceAccountName: default
+      
+      # 節點選擇（可選）
+      # nodeSelector:
+      #   kubernetes.io/arch: arm64    # 如果需要特定架構
+      
+      # 容錯配置
+      tolerations: []
+      affinity: {}
+
+---
+# 可選：HorizontalPodAutoscaler
+# 基於 CPU 使用率自動擴縮
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: gemma-backend-hpa
+  namespace: fullstack-app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: gemma-backend
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300    # 5分鐘穩定期
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60     # 1分鐘穩定期
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 60
