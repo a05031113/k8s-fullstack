@@ -58,6 +58,7 @@ spec:
     - name: gemma-backend-service
       port: 80
     middlewares:
+    - name: gemma-stripprefix  # 🔧 新增：移除路徑前綴
     - name: api-headers
     - name: api-cors
     - name: security-headers
@@ -81,6 +82,19 @@ spec:
     middlewares:
     - name: frontend-headers
     - name: security-headers
+
+---
+# 🔧 Gemma API 路徑前綴移除中間件
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: gemma-stripprefix
+  namespace: fullstack-app
+spec:
+  stripPrefix:
+    prefixes:
+      - "/gemma"  # 只移除 /gemma 前綴，保留 /api
+    forceSlash: false
 
 ---
 # 🔒 n8n 專用中間件
